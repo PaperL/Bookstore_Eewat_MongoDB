@@ -1,6 +1,6 @@
 import sqlite3
 import pymongo
-conn = sqlite3.connect('bookstore/fe/data/book.db')
+conn = sqlite3.connect('fe/data/book.db')
 cur = conn.cursor()
 cur.execute("SELECT * FROM book")
 rows = cur.fetchall()

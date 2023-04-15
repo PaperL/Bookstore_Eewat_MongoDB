@@ -44,6 +44,7 @@ class User(Collection):
     def __init__(self):
         # db_conn.DBConn.__init__(self)
         Collection.__init__(self, "user")
+        self.collection.create_index("user_id", unique=True)
 
     def __check_token(self, user_id, db_token, token) -> bool:
         try:
@@ -86,10 +87,11 @@ class User(Collection):
     def check_token(self, user_id: str, token: str) -> Tuple[int, str]:
         # cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
         # row = cursor.fetchone()
-        result_dict = self.collection.find ({'user_id': user_id})
-        if len (result_dict) == 0:
+        result = self.collection.find ({'user_id': user_id})
+        result_list = list (result)
+        if len (result_list) == 0:
             return error.error_authorization_fail()
-        db_token = result_dict[0]['token']
+        db_token = result_list[0]['token']
         if not self.__check_token(user_id, db_token, token):
             return error.error_authorization_fail()
         return 200, "ok"
@@ -97,11 +99,11 @@ class User(Collection):
     def check_password(self, user_id: str, password: str) -> Tuple[int, str]:
         # cursor = self.conn.execute("SELECT password from user where user_id=?", (user_id,))
         # row = cursor.fetchone()
-        result_dict = self.collection.find ({'usre_id': user_id})
-        if len (result_dict) is None:
+        result = self.collection.find ({'user_id': user_id})
+        result_list = list (result)
+        if len (result_list) == 0:
             return error.error_authorization_fail()
-
-        if password != result_dict[0]['password']:
+        if password != result_list[0]['password']:
             return error.error_authorization_fail()
 
         return 200, "ok"
@@ -117,11 +119,11 @@ class User(Collection):
             # cursor = self.conn.execute(
             #     "UPDATE user set token= ? , terminal = ? where user_id = ?",
             #     (token, terminal, user_id), )
-            update_result = self.collection.updateOne (
+            update_result = self.collection.update_one (
                 {"user_id": user_id},
                 {"$set": {"token": token, "terminal": terminal}}
             )
-            if update_result["matchedCount"] == 0:
+            if update_result.matched_count == 0:
                 return error.error_authorization_fail() + ("", )
         except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e)), ""
@@ -141,11 +143,11 @@ class User(Collection):
             # cursor = self.conn.execute(
             #     "UPDATE user SET token = ?, terminal = ? WHERE user_id=?",
             #     (dummy_token, terminal, user_id), )
-            update_result = self.collection.updateOne (
+            update_result = self.collection.update_one (
                 {"user_id": user_id},
                 {"$set": {"token": dummy_token, "terminal": terminal}}
             )
-            if update_result["matchedCount"] == 0:
+            if update_result.matched_count == 0:
                 return error.error_authorization_fail()
         except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
@@ -160,8 +162,8 @@ class User(Collection):
                 return code, message
 
             # cursor = self.conn.execute("DELETE from user where user_id=?", (user_id,))
-            delete_result = self.collection.deleteOne({"user_id": user_id})
-            if delete_result['deletedCount'] == 0:
+            delete_result = self.collection.delete_one({"user_id": user_id})
+            if delete_result.deleted_count == 0:
                 return error.error_authorization_fail()
         except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
@@ -180,11 +182,11 @@ class User(Collection):
             # cursor = self.conn.execute(
             #     "UPDATE user set password = ?, token= ? , terminal = ? where user_id = ?",
             #     (new_password, token, terminal, user_id), )
-            update_result = self.collection.updateOne (
+            update_result = self.collection.update_one (
                 {"user_id": user_id},
                 {"$set": {"password": new_password, "token": token, "terminal": terminal}}
             )
-            if update_result["matchedCount"] == 0:
+            if update_result.matched_count == 0:
                 return error.error_authorization_fail()
             
         except pymongo.errors.PyMongoError as e:
