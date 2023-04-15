@@ -82,22 +82,24 @@ class User(Collection):
         return 200, "ok"
 
     def check_token(self, user_id: str, token: str) -> tuple(int, str):
-        cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
-        row = cursor.fetchone()
-        if row is None:
+        # cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
+        # row = cursor.fetchone()
+        result_dict = self.collection.find ({'user_id': user_id})
+        if len (result_dict) == 0:
             return error.error_authorization_fail()
-        db_token = row[0]
+        db_token = result_dict[0]['token']
         if not self.__check_token(user_id, db_token, token):
             return error.error_authorization_fail()
         return 200, "ok"
 
     def check_password(self, user_id: str, password: str) -> tuple(int, str):
-        cursor = self.conn.execute("SELECT password from user where user_id=?", (user_id,))
-        row = cursor.fetchone()
-        if row is None:
+        # cursor = self.conn.execute("SELECT password from user where user_id=?", (user_id,))
+        # row = cursor.fetchone()
+        result_dict = self.collection.find ({'usre_id': user_id})
+        if len (result_dict) is None:
             return error.error_authorization_fail()
 
-        if password != row[0]:
+        if password != result_dict[0]['password']:
             return error.error_authorization_fail()
 
         return 200, "ok"
@@ -110,13 +112,16 @@ class User(Collection):
                 return code, message, ""
 
             token = jwt_encode(user_id, terminal)
-            cursor = self.conn.execute(
-                "UPDATE user set token= ? , terminal = ? where user_id = ?",
-                (token, terminal, user_id), )
-            if cursor.rowcount == 0:
+            # cursor = self.conn.execute(
+            #     "UPDATE user set token= ? , terminal = ? where user_id = ?",
+            #     (token, terminal, user_id), )
+            update_result = self.collection.updateOne (
+                {"user_id": user_id},
+                {"$set": {"token": token, "terminal": terminal}}
+            )
+            if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail() + ("", )
-            self.conn.commit()
-        except sqlite.Error as e:
+        except pymongo.errors as e:
             return 528, "{}".format(str(e)), ""
         except BaseException as e:
             return 530, "{}".format(str(e)), ""
@@ -131,14 +136,16 @@ class User(Collection):
             terminal = "terminal_{}".format(str(time.time()))
             dummy_token = jwt_encode(user_id, terminal)
 
-            cursor = self.conn.execute(
-                "UPDATE user SET token = ?, terminal = ? WHERE user_id=?",
-                (dummy_token, terminal, user_id), )
-            if cursor.rowcount == 0:
+            # cursor = self.conn.execute(
+            #     "UPDATE user SET token = ?, terminal = ? WHERE user_id=?",
+            #     (dummy_token, terminal, user_id), )
+            update_result = self.collection.updateOne (
+                {"user_id": user_id},
+                {"$set": {"token": dummy_token, "terminal": terminal}}
+            )
+            if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail()
-
-            self.conn.commit()
-        except sqlite.Error as e:
+        except pymongo.errors as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))
@@ -150,12 +157,11 @@ class User(Collection):
             if code != 200:
                 return code, message
 
-            cursor = self.conn.execute("DELETE from user where user_id=?", (user_id,))
-            if cursor.rowcount == 1:
-                self.conn.commit()
-            else:
+            # cursor = self.conn.execute("DELETE from user where user_id=?", (user_id,))
+            delete_result = self.collection.deleteOne({"user_id": user_id})
+            if delete_result['deletedCount'] == 0:
                 return error.error_authorization_fail()
-        except sqlite.Error as e:
+        except pymongo.errors as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))
@@ -169,14 +175,17 @@ class User(Collection):
 
             terminal = "terminal_{}".format(str(time.time()))
             token = jwt_encode(user_id, terminal)
-            cursor = self.conn.execute(
-                "UPDATE user set password = ?, token= ? , terminal = ? where user_id = ?",
-                (new_password, token, terminal, user_id), )
-            if cursor.rowcount == 0:
+            # cursor = self.conn.execute(
+            #     "UPDATE user set password = ?, token= ? , terminal = ? where user_id = ?",
+            #     (new_password, token, terminal, user_id), )
+            update_result = self.collection.updateOne (
+                {"user_id": user_id},
+                {"$set": {"password": new_password, "token": token, "terminal": terminal}}
+            )
+            if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail()
-
-            self.conn.commit()
-        except sqlite.Error as e:
+            
+        except pymongo.errors as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))
