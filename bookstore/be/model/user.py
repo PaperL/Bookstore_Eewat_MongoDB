@@ -1,9 +1,12 @@
 import jwt
 import time
 import logging
-import sqlite3 as sqlite
+# import sqlite3 as sqlite
+import pymongo
 from be.model import error
-from be.model import db_conn
+# from be.model import db_conn
+# from be.model import database
+from be.model.collection import Collection
 
 # encode a json string like:
 #   {
@@ -33,11 +36,12 @@ def jwt_decode(encoded_token, user_id: str) -> str:
     return decoded
 
 
-class User(db_conn.DBConn):
+class User(Collection):
     token_lifetime: int = 3600  # 3600 second
 
     def __init__(self):
-        db_conn.DBConn.__init__(self)
+        # db_conn.DBConn.__init__(self)
+        Collection.__init__(self, "user")
 
     def __check_token(self, user_id, db_token, token) -> bool:
         try:
@@ -57,16 +61,27 @@ class User(db_conn.DBConn):
         try:
             terminal = "terminal_{}".format(str(time.time()))
             token = jwt_encode(user_id, terminal)
-            self.conn.execute(
-                "INSERT into user(user_id, password, balance, token, terminal) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (user_id, password, 0, token, terminal), )
-            self.conn.commit()
-        except sqlite.Error:
+            # self.conn.execute(
+            #     "INSERT into user(user_id, password, balance, token, terminal) "
+            #     "VALUES (?, ?, ?, ?, ?);",
+            #     (user_id, password, 0, token, terminal), )
+            # self.conn.commit()
+            
+            # mongoDB example
+            self.collection.insert_one(
+                {
+                    "user_id": user_id,
+                    "password": password,
+                    "balance": 0,
+                    "token": token,
+                    "terminal": terminal
+                }
+            )
+        except pymongo.errors.DuplicateKeyError as e:
             return error.error_exist_user_id(user_id)
         return 200, "ok"
 
-    def check_token(self, user_id: str, token: str) -> (int, str):
+    def check_token(self, user_id: str, token: str) -> tuple(int, str):
         cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
         row = cursor.fetchone()
         if row is None:
@@ -76,7 +91,7 @@ class User(db_conn.DBConn):
             return error.error_authorization_fail()
         return 200, "ok"
 
-    def check_password(self, user_id: str, password: str) -> (int, str):
+    def check_password(self, user_id: str, password: str) -> tuple(int, str):
         cursor = self.conn.execute("SELECT password from user where user_id=?", (user_id,))
         row = cursor.fetchone()
         if row is None:
@@ -87,7 +102,7 @@ class User(db_conn.DBConn):
 
         return 200, "ok"
 
-    def login(self, user_id: str, password: str, terminal: str) -> (int, str, str):
+    def login(self, user_id: str, password: str, terminal: str) -> tuple(int, str, str):
         token = ""
         try:
             code, message = self.check_password(user_id, password)
@@ -129,7 +144,7 @@ class User(db_conn.DBConn):
             return 530, "{}".format(str(e))
         return 200, "ok"
 
-    def unregister(self, user_id: str, password: str) -> (int, str):
+    def unregister(self, user_id: str, password: str) -> tuple(int, str):
         try:
             code, message = self.check_password(user_id, password)
             if code != 200:
