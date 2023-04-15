@@ -1,8 +1,10 @@
 import jwt
 import time
 import logging
+from typing import Tuple
 # import sqlite3 as sqlite
 import pymongo
+import pymongo.errors
 from be.model import error
 # from be.model import db_conn
 # from be.model import database
@@ -81,7 +83,7 @@ class User(Collection):
             return error.error_exist_user_id(user_id)
         return 200, "ok"
 
-    def check_token(self, user_id: str, token: str) -> tuple(int, str):
+    def check_token(self, user_id: str, token: str) -> Tuple[int, str]:
         # cursor = self.conn.execute("SELECT token from user where user_id=?", (user_id,))
         # row = cursor.fetchone()
         result_dict = self.collection.find ({'user_id': user_id})
@@ -92,7 +94,7 @@ class User(Collection):
             return error.error_authorization_fail()
         return 200, "ok"
 
-    def check_password(self, user_id: str, password: str) -> tuple(int, str):
+    def check_password(self, user_id: str, password: str) -> Tuple[int, str]:
         # cursor = self.conn.execute("SELECT password from user where user_id=?", (user_id,))
         # row = cursor.fetchone()
         result_dict = self.collection.find ({'usre_id': user_id})
@@ -104,7 +106,7 @@ class User(Collection):
 
         return 200, "ok"
 
-    def login(self, user_id: str, password: str, terminal: str) -> tuple(int, str, str):
+    def login(self, user_id: str, password: str, terminal: str) -> Tuple[int, str, str]:
         token = ""
         try:
             code, message = self.check_password(user_id, password)
@@ -121,7 +123,7 @@ class User(Collection):
             )
             if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail() + ("", )
-        except pymongo.errors as e:
+        except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e)), ""
         except BaseException as e:
             return 530, "{}".format(str(e)), ""
@@ -145,13 +147,13 @@ class User(Collection):
             )
             if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail()
-        except pymongo.errors as e:
+        except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))
         return 200, "ok"
 
-    def unregister(self, user_id: str, password: str) -> tuple(int, str):
+    def unregister(self, user_id: str, password: str) -> Tuple[int, str]:
         try:
             code, message = self.check_password(user_id, password)
             if code != 200:
@@ -161,7 +163,7 @@ class User(Collection):
             delete_result = self.collection.deleteOne({"user_id": user_id})
             if delete_result['deletedCount'] == 0:
                 return error.error_authorization_fail()
-        except pymongo.errors as e:
+        except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))
@@ -185,7 +187,7 @@ class User(Collection):
             if update_result["matchedCount"] == 0:
                 return error.error_authorization_fail()
             
-        except pymongo.errors as e:
+        except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
             return 530, "{}".format(str(e))

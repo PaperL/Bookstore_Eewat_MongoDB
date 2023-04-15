@@ -11,7 +11,7 @@ class Database:
     def getDatabase(self) -> pymongo.database.Database:
         return self.database
 
-database: Database = None
+database_instance: Database = None
 
 def init_database():
     global database_instance

@@ -8,6 +8,7 @@ cur.close()
 conn.close()
 
 client = pymongo.MongoClient ('localhost', 27017)
+client.drop_database("bookstore")
 db = client['bookstore']
 books = db['book']
 

@@ -1,5 +1,5 @@
 import pymongo
-import database
+from be.model import database
 
 class Collection():
     def __init__(self, collection_name: str):
