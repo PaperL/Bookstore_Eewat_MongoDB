@@ -39,7 +39,7 @@ class Buyer():
                 #     (store_id, book_id))
                 # row = cursor.fetchone()
                 row = list(self.storeCollection.find({"store_id": store_id, "book_id": book_id}, {"_id": 0, "book_id": 1, "stock_level": 1, "book_info": 1}))
-                if row is None:
+                if len(row) == 0:
                     return error.error_non_exist_book_id(book_id) + (order_id, )
 
                 stock_level = row[0]['stock_level']
@@ -54,11 +54,11 @@ class Buyer():
                 #     "UPDATE store set stock_level = stock_level - ? "
                 #     "WHERE store_id = ? and book_id = ? and stock_level >= ?; ",
                 #     (count, store_id, book_id, count))
-                cursor = self.storeCollection.update_many(
+                result = self.storeCollection.update_many(
                     {"store_id": store_id, "book_id": book_id, "stock_level": {"$gte": count}},
                     {"$inc": {"stock_level": -count}}
                 )
-                if len(list(cursor)) == 0:
+                if result.matched_count == 0:
                     return error.error_stock_level_low(book_id) + (order_id, )
 
                 # self.conn.execute(
@@ -89,7 +89,7 @@ class Buyer():
             # cursor = conn.execute("SELECT order_id, user_id, store_id FROM new_order WHERE order_id = ?", (order_id,))
             # row = cursor.fetchone()
             row = list(self.neworderCollection.find({"order_id": order_id}, {"_id": 0, "order_id": 1, "user_id" : 1, "store_id": 1}))
-            if row is None:
+            if len(row) == 0:
                 return error.error_invalid_order_id(order_id)
 
             order_id = row[0]['order_id']
@@ -102,7 +102,7 @@ class Buyer():
             # cursor = conn.execute("SELECT balance, password FROM user WHERE user_id = ?;", (buyer_id,))
             # row = cursor.fetchone()
             row = list(self.userCollection.find({"user_id": buyer_id}, {"_id": 0, "balance": 1, "password": 1}))
-            if row is None:
+            if len(row) == 0:
                 return error.error_non_exist_user_id(buyer_id)
             balance = row[0]['balance']
             if password != row[0]['password']:
@@ -111,7 +111,7 @@ class Buyer():
             # cursor = conn.execute("SELECT store_id, user_id FROM user_store WHERE store_id = ?;", (store_id,))
             # row = cursor.fetchone()
             row = list(self.userstoreCollection.find({"store_id": store_id}, {"_id": 0, "store_id": 1, "user_id": 1}))
-            if row is None:
+            if len(row) == 0:
                 return error.error_non_exist_store_id(store_id)
 
             seller_id = row[0]['user_id']
@@ -123,8 +123,8 @@ class Buyer():
             cursor = self.neworderdetailCollection.find({"order_id": order_id}, {"_id": 0, "book_id": 1, "count": 1, "price": 1})
             total_price = 0
             for row in cursor:
-                count = row[0]['count']
-                price = row[0]['price']
+                count = row['count']
+                price = row['price']
                 total_price = total_price + price * count
 
             if balance < total_price:
@@ -133,31 +133,31 @@ class Buyer():
             # cursor = conn.execute("UPDATE user set balance = balance - ?"
             #                       "WHERE user_id = ? AND balance >= ?",
             #                       (total_price, buyer_id, total_price))
-            cursor = self.userCollection.update_one(
+            result = self.userCollection.update_one(
                 {"user_id": buyer_id, "balance": {"$gte": total_price}},
                 {"$inc": {"balance": -total_price}}
             )
-            if len(list(cursor)) == 0:
+            if result.matched_count == 0:
                 return error.error_not_sufficient_funds(order_id)
 
             # cursor = conn.execute("UPDATE user set balance = balance + ?"
             #                       "WHERE user_id = ?",
             #                       (total_price, buyer_id))
-            cursor = self.userCollection.update_one(
+            result = self.userCollection.update_one(
                 {"user_id": buyer_id},
                 {"$inc": {"balance": total_price}}
             )
-            if len(list(cursor)) == 0:
+            if result.matched_count == 0:
                 return error.error_non_exist_user_id(buyer_id)
 
             # cursor = conn.execute("DELETE FROM new_order WHERE order_id = ?", (order_id, ))
-            cursor = self.neworderCollection.delete_one({"order_id": order_id})
-            if len(list(cursor)) == 0:
+            result = self.neworderCollection.delete_one({"order_id": order_id})
+            if result.deleted_count == 0:
                 return error.error_invalid_order_id(order_id)
 
             # cursor = conn.execute("DELETE FROM new_order_detail where order_id = ?", (order_id, ))
-            cursor = self.neworderdetailCollection.delete_one({"order_id": order_id})
-            if len(list(cursor)) == 0:
+            result = self.neworderdetailCollection.delete_one({"order_id": order_id})
+            if result.deleted_count == 0:
                 return error.error_invalid_order_id(order_id)
 
             # conn.commit()
@@ -175,7 +175,7 @@ class Buyer():
             # cursor = self.conn.execute("SELECT password  from user where user_id=?", (user_id,))
             # row = cursor.fetchone()
             row = list(self.userCollection.find({"user_id": user_id}, {"_id": 0, "password": 1}))
-            if row is None:
+            if len(row) == 0:
                 return error.error_authorization_fail()
 
             if row[0]['password'] != password:
@@ -184,11 +184,11 @@ class Buyer():
             # cursor = self.conn.execute(
             #     "UPDATE user SET balance = balance + ? WHERE user_id = ?",
             #     (add_value, user_id))
-            cursor = self.userCollection.update_one(
+            result = self.userCollection.update_one(
                 {"user_id": user_id},
                 {"$inc": {"balance": add_value}}
             )
-            if len(list(cursor)):
+            if result.matched_count == 0:
                 return error.error_non_exist_user_id(user_id)
 
             # self.conn.commit()
