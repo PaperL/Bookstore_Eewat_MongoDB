@@ -9,7 +9,7 @@ from be.model.database import user_id_exist, book_id_exist, store_id_exist
 import pymongo
 import pymongo.errors
 
-class Buyer(db_conn.DBConn):
+class Buyer():
     def __init__(self):
         # db_conn.DBConn.__init__(self)
         self.userCollection = Collection("user").collection
@@ -84,7 +84,7 @@ class Buyer(db_conn.DBConn):
         return 200, "ok", order_id
 
     def payment(self, user_id: str, password: str, order_id: str) -> (int, str):
-        conn = self.conn
+        # conn = self.conn
         try:
             # cursor = conn.execute("SELECT order_id, user_id, store_id FROM new_order WHERE order_id = ?", (order_id,))
             # row = cursor.fetchone()
@@ -160,7 +160,7 @@ class Buyer(db_conn.DBConn):
             if len(list(cursor)) == 0:
                 return error.error_invalid_order_id(order_id)
 
-            conn.commit()
+            # conn.commit()
 
         except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
@@ -191,7 +191,7 @@ class Buyer(db_conn.DBConn):
             if len(list(cursor)):
                 return error.error_non_exist_user_id(user_id)
 
-            self.conn.commit()
+            # self.conn.commit()
         except pymongo.errors.PyMongoError as e:
             return 528, "{}".format(str(e))
         except BaseException as e:
