@@ -26,9 +26,9 @@ class Buyer():
     def new_order(self, user_id: str, store_id: str, id_and_count: [(str, int)]) -> (int, str, str):
         order_id = ""
         try:
-            if not self.user_id_exist(user_id):
+            if not user_id_exist(user_id):
                 return error.error_non_exist_user_id(user_id) + (order_id, )
-            if not self.store_id_exist(store_id):
+            if not store_id_exist(store_id):
                 return error.error_non_exist_store_id(store_id) + (order_id, )
             uid = "{}_{}_{}".format(user_id, store_id, str(uuid.uuid1()))
 
@@ -116,7 +116,7 @@ class Buyer():
 
             seller_id = row[0]['user_id']
 
-            if not self.user_id_exist(seller_id):
+            if not user_id_exist(seller_id):
                 return error.error_non_exist_user_id(seller_id)
 
             # cursor = conn.execute("SELECT book_id, count, price FROM new_order_detail WHERE order_id = ?;", (order_id,))
