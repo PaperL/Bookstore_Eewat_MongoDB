@@ -56,7 +56,7 @@ class Buyer():
                 #     (count, store_id, book_id, count))
                 cursor = self.storeCollection.update_many(
                     {"store_id": store_id, "book_id": book_id, "stock_level": {"$gte": count}},
-                    {"$dec": {"stock_level": count}}
+                    {"$inc": {"stock_level": -count}}
                 )
                 if len(list(cursor)) == 0:
                     return error.error_stock_level_low(book_id) + (order_id, )
@@ -135,7 +135,7 @@ class Buyer():
             #                       (total_price, buyer_id, total_price))
             cursor = self.userCollection.update_one(
                 {"user_id": buyer_id, "balance": {"$gte": total_price}},
-                {"$dnc": {"balance": total_price}}
+                {"$inc": {"balance": -total_price}}
             )
             if len(list(cursor)) == 0:
                 return error.error_not_sufficient_funds(order_id)
